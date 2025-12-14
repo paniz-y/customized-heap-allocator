@@ -8,7 +8,7 @@ int hinit(size_t heapSize, struct heap_t *heap)
         errno = EINVAL;
         return -1;
     }
-    size_t alignedPageSize = allignPage(heapSize);
+    size_t alignedPageSize = alignPage(heapSize);
     struct chunk_t *firstChunk = mmap(NULL, alignedPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     size_t remainedAvail = alignedPageSize - sizeof(struct chunk_t);
     firstChunk->size = remainedAvail;
@@ -30,25 +30,39 @@ size_t align8(size_t size)
     return ((size + 8 - 1) / 8) * 8;
 }
 
-
+void split(struct chunk_t *chunk, const size_t size)
+{
+    if (chunk->size > size + sizeof(struct chunk_t))
+    {
+        struct chunk_t *newChunk = (struct chunk_t *)((char *)chunk + sizeof(struct chunk_t) + size);
+        newChunk->size = chunk->size - size;
+        newChunk->next = chunk->next;
+        newChunk->inuse = 0;
+        chunk->next = newChunk;
+    }
+}
 void *halloc(const size_t size, struct heap_t *heap)
 {
     if (!size)
     {
         errno = EINVAL;
-        return -1;
+        return NULL;
     }
     size_t alignedSize = align8(size);
     struct chunk_t *prevChunk = NULL;
-    struct chunk_t *foundChunk = firstFit(heap, size, prevChunk);
-    if(foundChunk)
+    struct chunk_t *foundChunk = firstFit(size, heap, prevChunk);
+    if (foundChunk)
     {
         split(foundChunk, size);
         foundChunk->inuse = 1;
         heap->avail -= size;
         return (char *)foundChunk + sizeof(struct chunk_t);
     }
-
+    else
+    {
+        struct chunk_t *newChunk = requestMemory(size, heap);
+        prevChunk->next = newChunk;
+    }
 }
 struct chunk_t *firstFit(const size_t size, struct heap_t *heap, struct chunk_t *prevChunk)
 {
@@ -61,30 +75,18 @@ struct chunk_t *firstFit(const size_t size, struct heap_t *heap, struct chunk_t 
         }
         prevChunk = currChuck;
         currChuck = currChuck->next;
-        return NULL;
     }
-}
-void split(struct chunk_t *chunk, const size_t size)
-{
-    if (chunk->size > size + sizeof(struct chunk_t))
-    {
-        struct chunk_t *newChunk = (struct chunk_t *)((char *)chunk + sizeof(struct chunk_t) + size);
-        newChunk->size = chunk->size - size;
-        newChunk->next = chunk->next;
-        newChunk->inuse = 0;
-        chunk->next = newChunk;
-    }
+    return NULL;
 }
 struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
 {
     size_t alignedPageSize = alignPage(size + sizeof(struct chunk_t));
-    struct chunk_t * newChunk = mmap(NULL, alignedPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    struct chunk_t *newChunk = mmap(NULL, alignedPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     newChunk->size = alignedPageSize - sizeof(struct chunk_t);
     newChunk->next = NULL;
     newChunk->inuse = 1;
-    
+
     return newChunk;
-    
 }
 
 int main()
