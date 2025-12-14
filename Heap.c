@@ -88,6 +88,12 @@ struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
 
     return newChunk;
 }
+void hfree(void *ptr, struct heap_t *heap)
+{
+    struct chunk_t *chunk = (struct chunk_t *)((char *) ptr - sizeof(struct chunk_t));
+    chunk->inuse = 0;
+    heap->avail += chunk->size;
+}
 
 int main()
 {
