@@ -29,6 +29,8 @@ size_t align8(size_t size)
 {
     return ((size + 8 - 1) / 8) * 8;
 }
+
+
 void *halloc(const size_t size, struct heap_t *heap)
 {
     if (!size)
@@ -37,7 +39,8 @@ void *halloc(const size_t size, struct heap_t *heap)
         return -1;
     }
     size_t alignedSize = align8(size);
-    struct chunk_t *foundChunk = firstFit(heap, size);
+    struct chunk_t *prevChunk = NULL;
+    struct chunk_t *foundChunk = firstFit(heap, size, prevChunk);
     if(foundChunk)
     {
         split(foundChunk, size);
@@ -45,8 +48,9 @@ void *halloc(const size_t size, struct heap_t *heap)
         heap->avail -= size;
         return (char *)foundChunk + sizeof(struct chunk_t);
     }
+
 }
-struct chunk_t *firstFit(const size_t size, struct heap_t *heap)
+struct chunk_t *firstFit(const size_t size, struct heap_t *heap, struct chunk_t *prevChunk)
 {
     struct chunk_t *currChuck = heap->start;
     while (currChuck)
@@ -55,6 +59,7 @@ struct chunk_t *firstFit(const size_t size, struct heap_t *heap)
         {
             return currChuck;
         }
+        prevChunk = currChuck;
         currChuck = currChuck->next;
         return NULL;
     }
@@ -70,6 +75,18 @@ void split(struct chunk_t *chunk, const size_t size)
         chunk->next = newChunk;
     }
 }
+struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
+{
+    size_t alignedPageSize = alignPage(size + sizeof(struct chunk_t));
+    struct chunk_t * newChunk = mmap(NULL, alignedPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    newChunk->size = alignedPageSize - sizeof(struct chunk_t);
+    newChunk->next = NULL;
+    newChunk->inuse = 1;
+    
+    return newChunk;
+    
+}
+
 int main()
 {
     struct heap_t heap;
