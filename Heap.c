@@ -39,7 +39,7 @@ void split(struct chunk_t *chunk, const size_t size)
     if (chunk->size > size + sizeof(struct chunk_t))
     {
         struct chunk_t *newChunk = (struct chunk_t *)((char *)chunk + sizeof(struct chunk_t) + size);
-        newChunk->size = chunk->size - size;
+        newChunk->size = chunk->size - size - sizeof(struct chunk_t);
         newChunk->next = chunk->next;
         newChunk->inuse = 0;
         chunk->next = newChunk;
@@ -97,7 +97,29 @@ struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
 }
 void hfree(void *ptr, struct heap_t *heap)
 {
+    if (!ptr)
+    {
+        errno = EINVAL;
+        return;
+    }
+    if(ptr < heap->heap_start || ptr >= heap->heap_end) //bounbry check
+    {
+        errno = EINVAL;
+        return;
+    }
     struct chunk_t *chunk = (struct chunk_t *)((char *)ptr - sizeof(struct chunk_t));
+
+    if(chunk->magic != CHUNK_MAGIC) // metadata inegrity check
+    {
+        errno = EINVAL;
+        return;
+    }
+    if(!chunk->inuse) // double free check
+    {
+        errno = EINVAL;
+        return;
+    }
+
     chunk->inuse = 0;
     heap->avail += chunk->size;
 }
