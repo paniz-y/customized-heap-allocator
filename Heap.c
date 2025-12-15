@@ -14,6 +14,10 @@ int hinit(size_t heapSize, struct heap_t *heap)
     firstChunk->size = remainedAvail;
     firstChunk->inuse = 0;
     firstChunk->next = NULL;
+    firstChunk->magic = CHUNK_MAGIC;
+
+    heap->heap_start = firstChunk;
+    heap->heap_end = (char *)firstChunk + alignedPageSize; // enable all future security checks
 
     heap->start = firstChunk;
     heap->avail = firstChunk->size;
@@ -27,7 +31,7 @@ size_t alignPage(size_t heapSize)
 }
 size_t align8(size_t size)
 {
-    return ((size + 8 - 1) / 8) * 8;
+    return ((size + 8 - 1) / 8) * 8; //every allocated block size would be a multiple of 8
 }
 
 void split(struct chunk_t *chunk, const size_t size)
@@ -39,23 +43,25 @@ void split(struct chunk_t *chunk, const size_t size)
         newChunk->next = chunk->next;
         newChunk->inuse = 0;
         chunk->next = newChunk;
+        chunk->magic = CHUNK_MAGIC;
     }
 }
 void *halloc(const size_t size, struct heap_t *heap)
 {
-    if (!size)
+    if (!size || size > heap->avail) 
     {
         errno = EINVAL;
         return NULL;
     }
     size_t alignedSize = align8(size);
     struct chunk_t *prevChunk = NULL;
-    struct chunk_t *foundChunk = firstFit(size, heap, prevChunk);
+    struct chunk_t *foundChunk = firstFit(alignedSize, heap, &prevChunk);
+    foundChunk->magic = CHUNK_MAGIC;
     if (foundChunk)
     {
-        split(foundChunk, size);
+        split(foundChunk, alignedSize);
         foundChunk->inuse = 1;
-        heap->avail -= size;
+        heap->avail -= alignedSize;
         return (char *)foundChunk + sizeof(struct chunk_t);
     }
     else
@@ -64,7 +70,7 @@ void *halloc(const size_t size, struct heap_t *heap)
         prevChunk->next = newChunk;
     }
 }
-struct chunk_t *firstFit(const size_t size, struct heap_t *heap, struct chunk_t *prevChunk)
+struct chunk_t *firstFit(const size_t size, struct heap_t *heap, struct chunk_t **prevChunk)
 {
     struct chunk_t *currChuck = heap->start;
     while (currChuck)
@@ -73,7 +79,7 @@ struct chunk_t *firstFit(const size_t size, struct heap_t *heap, struct chunk_t 
         {
             return currChuck;
         }
-        prevChunk = currChuck;
+        *prevChunk = currChuck;
         currChuck = currChuck->next;
     }
     return NULL;
@@ -85,12 +91,13 @@ struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
     newChunk->size = alignedPageSize - sizeof(struct chunk_t);
     newChunk->next = NULL;
     newChunk->inuse = 1;
+    newChunk->magic = CHUNK_MAGIC;
 
     return newChunk;
 }
 void hfree(void *ptr, struct heap_t *heap)
 {
-    struct chunk_t *chunk = (struct chunk_t *)((char *) ptr - sizeof(struct chunk_t));
+    struct chunk_t *chunk = (struct chunk_t *)((char *)ptr - sizeof(struct chunk_t));
     chunk->inuse = 0;
     heap->avail += chunk->size;
 }
