@@ -102,7 +102,7 @@ void coalescing(struct heap_t *heap)
     {
         if(!currChunk->inuse && !currChunk->next->inuse)
         {
-            currChunk->size += currChunk->next->size;
+            currChunk->size += currChunk->next->size + sizeof(struct chunk_t);
             currChunk->next = currChunk->next->next;
         }
         else 
