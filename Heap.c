@@ -95,6 +95,24 @@ struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
 
     return newChunk;
 }
+void coalescing(struct heap_t *heap)
+{
+    struct chunk_t *currChunk = heap->start;
+    while (currChunk && currChunk->next)
+    {
+        if(!currChunk->inuse && !currChunk->next->inuse)
+        {
+            currChunk->size += currChunk->next->size;
+            currChunk->next = currChunk->next->next;
+        }
+        else 
+        {
+            currChunk = currChunk->next;
+        }
+    }
+    
+}
+
 void hfree(void *ptr, struct heap_t *heap)
 {
     if (!ptr)
@@ -122,6 +140,7 @@ void hfree(void *ptr, struct heap_t *heap)
 
     chunk->inuse = 0;
     heap->avail += chunk->size;
+    coalescing(heap);
 }
 
 int main()

@@ -20,7 +20,7 @@ void *halloc(const size_t size, struct heap_t *heap);
 struct chunk_t *firstFit(const size_t size, struct heap_t *heap, struct chunk_t **prevChunk);
 struct chunk_t *requestMemory(size_t size, struct heap_t *heap);
 void hfree(void *ptr, struct heap_t *heap);
-
+void coalescing(struct heap_t *heap);
 
 
 #endif
