@@ -16,8 +16,6 @@ int hinit(size_t heapSize, struct heap_t *heap)
     firstChunk->next = NULL;
     firstChunk->magic = CHUNK_MAGIC;
 
-    heap->heap_start = firstChunk;
-    heap->heap_end = (char *)firstChunk + alignedPageSize; // enable all future security checks
 
     heap->start = firstChunk;
     heap->avail = firstChunk->size;
@@ -56,9 +54,9 @@ void *halloc(const size_t size, struct heap_t *heap)
     size_t alignedSize = align8(size);
     struct chunk_t *prevChunk = NULL;
     struct chunk_t *foundChunk = firstFit(alignedSize, heap, &prevChunk);
-    foundChunk->magic = CHUNK_MAGIC;
     if (foundChunk)
     {
+        foundChunk->magic = CHUNK_MAGIC;
         split(foundChunk, alignedSize);
         foundChunk->inuse = 1;
         heap->avail -= alignedSize;
@@ -120,11 +118,7 @@ void hfree(void *ptr, struct heap_t *heap)
         errno = EINVAL;
         return;
     }
-    if(ptr < heap->heap_start || ptr >= heap->heap_end) //bounbry check
-    {
-        errno = EINVAL;
-        return;
-    }
+  
     struct chunk_t *chunk = (struct chunk_t *)((char *)ptr - sizeof(struct chunk_t));
 
     if(chunk->magic != CHUNK_MAGIC) // metadata inegrity check
