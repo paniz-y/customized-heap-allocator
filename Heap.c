@@ -217,7 +217,18 @@ void sweep(struct heap_t *heap)
 void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
 {
 
-    
+    for(size_t i = 0; i < numOfRoots; i++)
+    {
+        if(roots[i])
+        {
+            struct chunk_t *currChunk = (struct chunk_t*)((char *) roots[i] - sizeof(struct chunk_t));
+            if(currChunk->inuse)
+            {
+                mark(currChunk);
+            }
+        }
+    }
+    sweep(heap);
 }
 
 
