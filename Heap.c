@@ -214,8 +214,22 @@ void sweep(struct heap_t *heap)
         currChunk = currChunk->next;
     }
 }
+void unmarkAllChunks(struct heap_t *heap)
+{
+    struct chunk_t *currChunk = heap->start;
+    while (currChunk)
+    {
+        if(currChunk->marked)
+        {
+            currChunk->marked = 0;
+        }
+        currChunk = currChunk->next;
+    }
+    
+}
 void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
 {
+    unmarkAllChunks(heap);
 
     for(size_t i = 0; i < numOfRoots; i++)
     {
