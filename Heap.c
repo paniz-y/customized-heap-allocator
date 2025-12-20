@@ -173,6 +173,40 @@ void hfree(void *ptr, struct heap_t *heap)
     heap->avail += chunk->size;
     coalescing(heap);
 }
+void mark(struct chunk_t *chunk)
+{
+    if(!chunk)
+    {
+        return;
+    }
+    if(chunk->marked)
+    {
+        return;
+    }
+    char *userDataStart = (char *)chunk + sizeof(struct chunk_t);
+    char *userDataEnd = chunk->size + userDataStart;
+
+    for(char *ptr = userDataStart; ptr < userDataEnd; ptr += sizeof(void*))
+    {
+        void **possibleUserPtr = (void**)ptr;
+        if(*possibleUserPtr)
+        {
+            struct chunk_t *childChunk = (struct chunk_t*)((char *)*possibleUserPtr) - sizeof(struct chunk_t);
+            if(childChunk->inuse)
+            {
+                mark(childChunk);
+            }
+        }
+    }
+
+}
+void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
+{
+
+    
+}
+
+
 
 int main()
 {

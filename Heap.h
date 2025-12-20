@@ -28,5 +28,7 @@ struct chunk_t *requestMemory(size_t size, struct heap_t *heap);
 int exictingPtrInHeap(void *ptr, struct heap_t *heap);
 void hfree(void *ptr, struct heap_t *heap);
 void coalescing(struct heap_t *heap);
+void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots);
+void mark(struct chunk_t *chunk);
 
 #endif
