@@ -30,5 +30,6 @@ void hfree(void *ptr, struct heap_t *heap);
 void coalescing(struct heap_t *heap);
 void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots);
 void mark(struct chunk_t *chunk);
+void sweep(struct heap_t *heap);
 
 #endif

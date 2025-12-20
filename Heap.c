@@ -200,6 +200,20 @@ void mark(struct chunk_t *chunk)
     }
 
 }
+void sweep(struct heap_t *heap)
+{
+    struct chunk_t *currChunk = heap->start;
+    while(currChunk)
+    {
+        if(currChunk->inuse && !currChunk->marked)
+        {
+            currChunk->inuse = 0;
+            heap->avail += currChunk->size;
+
+        }
+        currChunk = currChunk->next;
+    }
+}
 void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
 {
 
