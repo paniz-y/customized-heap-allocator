@@ -8,5 +8,6 @@ struct chunk_t
     uint8_t inuse; // boolean
     struct chunk_t *next;
     uint32_t magic;
+    uint8_t marked;
 };
 #endif
