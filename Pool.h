@@ -12,8 +12,16 @@ struct pool_t
     struct pool_t *next;
 };
 
+struct pool_region_t
+{
+    void *poolRegionStart;
+    void *poolRegionEnd;
+    struct pool_region_t *nextPoolRegion;
+};
+
 struct heap_t;
 void poolInit(struct heap_t *heap);
 void *poolAlloc(size_t size, struct heap_t *heap);
 int poolFree(void *ptr, struct heap_t *heap);
+int ptrInPool(void *ptr, struct heap_t *heap);
 #endif
