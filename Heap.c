@@ -61,7 +61,7 @@ void split(struct chunk_t *chunk, const size_t size)
 }
 void *halloc(const size_t size, struct heap_t *heap)
 {
-    if (!size || size > heap->avail)
+    if (!size)
     {
         errno = EINVAL;
         return NULL;
@@ -83,7 +83,7 @@ void *halloc(const size_t size, struct heap_t *heap)
     }
     else
     {
-        struct chunk_t *newChunk = requestMemory(size, heap);
+        struct chunk_t *newChunk = requestMemory(alignedSize, heap);
         foundChunk = newChunk;
         if (prevChunk)
         {
