@@ -1,5 +1,6 @@
 #include "Chunk.h"
 #include "Heap.h"
+#include "Pool.h"
 
 int hinit(size_t heapSize, struct heap_t *heap)
 {
@@ -27,6 +28,10 @@ int hinit(size_t heapSize, struct heap_t *heap)
     heap->start = firstChunk;
     heap->avail = firstChunk->size;
     heap->regions = firstReg;
+
+    // memory pool
+    poolInitialize(heap);
+    poolInit(heap);
 
     return 0;
 }
@@ -60,6 +65,12 @@ void *halloc(const size_t size, struct heap_t *heap)
     {
         errno = EINVAL;
         return NULL;
+    }
+    if (size <= POOL_MAX_SIZE)
+    {
+        void *pool = poolAlloc(align8(size), heap);
+        if (pool)
+            return pool;
     }
     size_t alignedSize = align8(size);
     struct chunk_t *prevChunk = NULL;
@@ -150,6 +161,11 @@ void hfree(void *ptr, struct heap_t *heap)
         return;
     }
 
+    if (poolFree(ptr, heap))
+    {
+        return;
+    }
+
     if (!exictingPtrInHeap(ptr, heap))
     {
         errno = EINVAL;
@@ -175,41 +191,39 @@ void hfree(void *ptr, struct heap_t *heap)
 }
 void mark(struct chunk_t *chunk)
 {
-    if(!chunk)
+    if (!chunk)
     {
         return;
     }
-    if(chunk->marked)
+    if (chunk->marked)
     {
         return;
     }
     char *userDataStart = (char *)chunk + sizeof(struct chunk_t);
     char *userDataEnd = chunk->size + userDataStart;
 
-    for(char *ptr = userDataStart; ptr < userDataEnd; ptr += sizeof(void*))
+    for (char *ptr = userDataStart; ptr < userDataEnd; ptr += sizeof(void *))
     {
-        void **possibleUserPtr = (void**)ptr;
-        if(*possibleUserPtr)
+        void **possibleUserPtr = (void **)ptr;
+        if (*possibleUserPtr)
         {
-            struct chunk_t *childChunk = (struct chunk_t*)((char *)*possibleUserPtr) - sizeof(struct chunk_t);
-            if(childChunk->inuse)
+            struct chunk_t *childChunk = (struct chunk_t *)((char *)*possibleUserPtr) - sizeof(struct chunk_t);
+            if (childChunk->inuse)
             {
                 mark(childChunk);
             }
         }
     }
-
 }
 void sweep(struct heap_t *heap)
 {
     struct chunk_t *currChunk = heap->start;
-    while(currChunk)
+    while (currChunk)
     {
-        if(currChunk->inuse && !currChunk->marked)
+        if (currChunk->inuse && !currChunk->marked)
         {
             currChunk->inuse = 0;
             heap->avail += currChunk->size;
-
         }
         currChunk = currChunk->next;
     }
@@ -219,24 +233,32 @@ void unmarkAllChunks(struct heap_t *heap)
     struct chunk_t *currChunk = heap->start;
     while (currChunk)
     {
-        if(currChunk->marked)
+        if (currChunk->marked)
         {
             currChunk->marked = 0;
         }
         currChunk = currChunk->next;
     }
-    
+}
+void poolInitialize(struct heap_t *heap)
+{
+    size_t size = 8;
+    for (size_t i = 1; i <= 5; i++)
+    {
+        heap->poolSizes[i] = (size_t)pow(size, i);
+    }
+    heap->numPools = 5;
 }
 void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
 {
     unmarkAllChunks(heap);
 
-    for(size_t i = 0; i < numOfRoots; i++)
+    for (size_t i = 0; i < numOfRoots; i++)
     {
-        if(roots[i])
+        if (roots[i])
         {
-            struct chunk_t *currChunk = (struct chunk_t*)((char *) roots[i] - sizeof(struct chunk_t));
-            if(currChunk->inuse)
+            struct chunk_t *currChunk = (struct chunk_t *)((char *)roots[i] - sizeof(struct chunk_t));
+            if (currChunk->inuse)
             {
                 mark(currChunk);
             }
@@ -244,8 +266,6 @@ void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
     }
     sweep(heap);
 }
-
-
 
 int main()
 {
