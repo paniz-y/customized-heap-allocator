@@ -13,6 +13,11 @@ int hinit(size_t heapSize, struct heap_t *heap)
 
     // initialize the first chunk
     struct chunk_t *firstChunk = mmap(NULL, alignedPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if(firstChunk == MAP_FAILED)
+    {
+        errno = ENOMEM;
+        return -1;
+    }
     size_t remainedAvail = alignedPageSize - sizeof(struct chunk_t);
     firstChunk->size = remainedAvail;
     firstChunk->inuse = 0;
@@ -21,6 +26,11 @@ int hinit(size_t heapSize, struct heap_t *heap)
 
     // initialize the first region
     struct region_t *firstReg = mmap(NULL, sizeof(struct region_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if(firstReg == MAP_FAILED)
+    {
+        errno = ENOMEM;
+        return -1;
+    }
     firstReg->startOfRegion = firstChunk;
     firstReg->endOfRegion = (char *)firstChunk + alignedPageSize;
     firstReg->next = NULL;
@@ -117,12 +127,22 @@ struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
 {
     size_t alignedPageSize = alignPage(size + sizeof(struct chunk_t));
     struct chunk_t *newChunk = mmap(NULL, alignedPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if(newChunk == MAP_FAILED)
+    {
+        errno = ENOMEM;
+        return NULL;
+    }
     newChunk->size = alignedPageSize - sizeof(struct chunk_t);
     newChunk->next = NULL;
     newChunk->inuse = 1;
     newChunk->magic = CHUNK_MAGIC;
 
     struct region_t *newReg = mmap(NULL, sizeof(struct region_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if(newReg == MAP_FAILED)
+    {
+        errno = ENOMEM;
+        return NULL;
+    }
     newReg->startOfRegion = newChunk;
     newReg->endOfRegion = (char *)newChunk + alignedPageSize;
     newReg->next = heap->regions;

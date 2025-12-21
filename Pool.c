@@ -10,6 +10,11 @@ void poolInit(struct heap_t *heap)
     for (size_t i = 0; i < heap->numPools; i++)
     {
         struct pool_t *firstPool = mmap(NULL, sizeof(struct pool_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if (firstPool == MAP_FAILED)
+        {
+            errno = ENOMEM;
+            return;
+        }
 
         firstPool->blockSize = heap->poolSizes[i];
         firstPool->freeList = NULL;
@@ -30,8 +35,17 @@ void *poolAlloc(size_t size, struct heap_t *heap)
         return NULL;
 
     void *poolPage = mmap(NULL, POOL_PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
+    if (poolPage == MAP_FAILED)
+    {
+        errno = ENOMEM;
+        return NULL;
+    }
     struct pool_region_t *newReg = mmap(NULL, sizeof(struct pool_region_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (newReg == MAP_FAILED)
+    {
+        errno = ENOMEM;
+        return NULL;
+    }
 
     newReg->poolRegionStart = poolPage;
     newReg->poolRegionEnd = (char *)poolPage + POOL_PAGE_SIZE;
