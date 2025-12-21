@@ -182,6 +182,12 @@ void hfree(void *ptr, struct heap_t *heap)
 
     struct chunk_t *chunk = (struct chunk_t *)((char *)ptr - sizeof(struct chunk_t));
 
+    if (!exictingPtrInHeap(chunk, heap))
+    {
+        errno = EINVAL;
+        return;
+    }
+
     if (chunk->magic != CHUNK_MAGIC) // metadata inegrity check
     {
         errno = EINVAL;
