@@ -2,6 +2,8 @@
 #include "Heap.h"
 #include "Pool.h"
 
+static size_t allocationCounts[1024] = {0};
+
 int hinit(size_t heapSize, struct heap_t *heap)
 {
     if (!heapSize)
@@ -13,7 +15,7 @@ int hinit(size_t heapSize, struct heap_t *heap)
 
     // initialize the first chunk
     struct chunk_t *firstChunk = mmap(NULL, alignedPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if(firstChunk == MAP_FAILED)
+    if (firstChunk == MAP_FAILED)
     {
         errno = ENOMEM;
         return -1;
@@ -26,7 +28,7 @@ int hinit(size_t heapSize, struct heap_t *heap)
 
     // initialize the first region
     struct region_t *firstReg = mmap(NULL, sizeof(struct region_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if(firstReg == MAP_FAILED)
+    if (firstReg == MAP_FAILED)
     {
         errno = ENOMEM;
         return -1;
@@ -69,6 +71,18 @@ void split(struct chunk_t *chunk, const size_t size)
         chunk->size = size;
     }
 }
+uint8_t detectHeapSpraying(size_t alignedSize)
+{
+    size_t bucket = alignedSize % 1024;
+    allocationCounts[bucket]++;
+    if (allocationCounts[bucket] > 1000)
+    {
+        errno = EPERM;
+        return 1;
+    }
+    return 0;
+}
+
 void *halloc(const size_t size, struct heap_t *heap)
 {
     if (!size)
@@ -83,6 +97,12 @@ void *halloc(const size_t size, struct heap_t *heap)
             return pool;
     }
     size_t alignedSize = align8(size);
+
+    if(detectHeapSpraying(alignedSize))
+    {
+        return NULL;
+    }
+
     struct chunk_t *prevChunk = NULL;
     struct chunk_t *foundChunk = firstFit(alignedSize, heap, &prevChunk);
     if (foundChunk)
@@ -127,7 +147,7 @@ struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
 {
     size_t alignedPageSize = alignPage(size + sizeof(struct chunk_t));
     struct chunk_t *newChunk = mmap(NULL, alignedPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if(newChunk == MAP_FAILED)
+    if (newChunk == MAP_FAILED)
     {
         errno = ENOMEM;
         return NULL;
@@ -138,7 +158,7 @@ struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
     newChunk->magic = CHUNK_MAGIC;
 
     struct region_t *newReg = mmap(NULL, sizeof(struct region_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if(newReg == MAP_FAILED)
+    if (newReg == MAP_FAILED)
     {
         errno = ENOMEM;
         return NULL;

@@ -38,4 +38,5 @@ void mark(struct chunk_t *chunk, struct heap_t *heap);
 void sweep(struct heap_t *heap);
 void unmarkAllChunks(struct heap_t *heap);
 void poolInitialize(struct heap_t *heap);
+uint8_t detectHeapSpraying(const size_t alignedSize);
 #endif
