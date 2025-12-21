@@ -84,7 +84,15 @@ void *halloc(const size_t size, struct heap_t *heap)
     else
     {
         struct chunk_t *newChunk = requestMemory(size, heap);
-        prevChunk->next = newChunk;
+        foundChunk = newChunk;
+        if (prevChunk)
+        {
+            prevChunk->next = foundChunk;
+        }
+        else
+        {
+            heap->start = foundChunk;
+        }
     }
     heap->avail -= alignedSize;
     return (char *)foundChunk + sizeof(struct chunk_t);
