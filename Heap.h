@@ -6,11 +6,15 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <stdio.h>
+#include <math.h>
 struct heap_t
 {
     struct chunk_t *start; // the chunk list head
     uint32_t avail;        // available memory
     struct region_t *regions;
+    struct pool_t *pools;
+    size_t poolSizes[5]; // the maximum number of pools will be 5
+    size_t numPools;
 };
 struct region_t
 {
@@ -32,4 +36,5 @@ void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots);
 void mark(struct chunk_t *chunk);
 void sweep(struct heap_t *heap);
 void unmarkAllChunks(struct heap_t *heap);
+void poolInitialize(struct heap_t *heap);
 #endif
