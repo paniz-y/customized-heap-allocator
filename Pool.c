@@ -31,6 +31,13 @@ void *poolAlloc(size_t size, struct heap_t *heap)
 
     void *poolPage = mmap(NULL, POOL_PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
+    struct pool_region_t *newReg = mmap(NULL, sizeof(struct pool_region_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+    newReg->poolRegionStart = poolPage;
+    newReg->poolRegionEnd = (char *)poolPage + POOL_PAGE_SIZE;
+    newReg->nextPoolRegion = heap->poolRegions;
+    heap->poolRegions = newReg;
+
     size_t numberOfBlocks = POOL_PAGE_SIZE / newPool->blockSize;
 
     char *pagePtr = (char *)poolPage;
@@ -50,6 +57,12 @@ void *poolAlloc(size_t size, struct heap_t *heap)
 
 int poolFree(void *ptr, struct heap_t *heap)
 {
+    if (!ptrInPool(ptr, heap))
+    {
+        errno = EINVAL;
+        return 0;
+    }
+
     struct pool_t *pool = heap->pools;
 
     while (pool)
@@ -61,6 +74,24 @@ int poolFree(void *ptr, struct heap_t *heap)
             return 1;
         }
         pool = pool->next;
+    }
+    return 0;
+}
+
+int ptrInPool(void *ptr, struct heap_t *heap)
+{
+    uintptr_t newPtr = (uintptr_t)ptr;
+    struct pool_region_t *reg = heap->poolRegions;
+
+    while (reg)
+    {
+        uintptr_t start = (uintptr_t)reg->poolRegionStart;
+        uintptr_t end = (uintptr_t)reg->poolRegionEnd;
+
+        if (newPtr >= start && newPtr < end)
+            return 1;
+
+        reg = reg->nextPoolRegion;
     }
     return 0;
 }
