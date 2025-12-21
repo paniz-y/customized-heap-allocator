@@ -15,6 +15,7 @@ struct heap_t
     struct pool_t *pools;
     size_t poolSizes[5]; // the maximum number of pools will be 5
     size_t numPools;
+    struct pool_region_t *poolRegions;
 };
 struct region_t
 {
