@@ -132,7 +132,7 @@ struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
 
     return newChunk;
 }
-int exictingPtrInHeap(void *ptr, struct heap_t *heap)
+int existingPtrInHeap(void *ptr, struct heap_t *heap)
 {
     struct region_t *newTmpReg = heap->regions;
     while (newTmpReg)
@@ -174,7 +174,7 @@ void hfree(void *ptr, struct heap_t *heap)
         return;
     }
 
-    if (!exictingPtrInHeap(ptr, heap))
+    if (!existingPtrInHeap(ptr, heap))
     {
         errno = EINVAL;
         return;
@@ -182,7 +182,7 @@ void hfree(void *ptr, struct heap_t *heap)
 
     struct chunk_t *chunk = (struct chunk_t *)((char *)ptr - sizeof(struct chunk_t));
 
-    if (!exictingPtrInHeap(chunk, heap))
+    if (!existingPtrInHeap(chunk, heap))
     {
         errno = EINVAL;
         return;
@@ -203,7 +203,7 @@ void hfree(void *ptr, struct heap_t *heap)
     heap->avail += chunk->size;
     coalescing(heap);
 }
-void mark(struct chunk_t *chunk)
+void mark(struct chunk_t *chunk, struct heap_t *heap)
 {
     if (!chunk)
     {
@@ -213,18 +213,26 @@ void mark(struct chunk_t *chunk)
     {
         return;
     }
+    chunk->marked = 1;
     char *userDataStart = (char *)chunk + sizeof(struct chunk_t);
     char *userDataEnd = chunk->size + userDataStart;
-
+    printf("219\n");
     for (char *ptr = userDataStart; ptr < userDataEnd; ptr += sizeof(void *))
     {
+        printf("222\n");
         void **possibleUserPtr = (void **)ptr;
         if (*possibleUserPtr)
         {
+            printf("226\n");
+            if (!existingPtrInHeap(*possibleUserPtr, heap))
+            {
+                continue;
+            }
             struct chunk_t *childChunk = (struct chunk_t *)((char *)*possibleUserPtr) - sizeof(struct chunk_t);
             if (childChunk->inuse)
             {
-                mark(childChunk);
+                printf("230\n");
+                mark(childChunk, heap);
             }
         }
     }
@@ -274,7 +282,7 @@ void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
             struct chunk_t *currChunk = (struct chunk_t *)((char *)roots[i] - sizeof(struct chunk_t));
             if (currChunk->inuse)
             {
-                mark(currChunk);
+                mark(currChunk, heap);
             }
         }
     }
@@ -284,7 +292,20 @@ void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
 int main()
 {
     struct heap_t heap;
-    hinit(4096, &heap);
-    printf("%p %d", (void *)heap.start, heap.avail);
+    hinit(8192, &heap);
+    //printf("295\n");
+    void *p1 = halloc(100, &heap);
+    //printf("297\n");
+    void *p2 = halloc(500, &heap);
+    //printf("299\n");
+    void *p3 = halloc(10000, &heap);
+    //printf("301\n");
+    void *p4 = halloc(2000, &heap);
+    //printf("303\n");
+
+    p4 = NULL;
+    void *roots[] = {p1, p2, p3};
+    markAndSweep(&heap, roots, 3);
+
     return 0;
 }
