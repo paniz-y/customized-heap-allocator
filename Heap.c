@@ -256,14 +256,11 @@ void mark(struct chunk_t *chunk, struct heap_t *heap)
     chunk->marked = 1;
     char *userDataStart = (char *)chunk + sizeof(struct chunk_t);
     char *userDataEnd = chunk->size + userDataStart;
-    printf("219\n");
     for (char *ptr = userDataStart; ptr < userDataEnd; ptr += sizeof(void *))
     {
-        printf("222\n");
         void **possibleUserPtr = (void **)ptr;
         if (*possibleUserPtr)
         {
-            printf("226\n");
             if (!existingPtrInHeap(*possibleUserPtr, heap))
             {
                 continue;
@@ -271,7 +268,6 @@ void mark(struct chunk_t *chunk, struct heap_t *heap)
             struct chunk_t *childChunk = (struct chunk_t *)((char *)*possibleUserPtr) - sizeof(struct chunk_t);
             if (childChunk->inuse)
             {
-                printf("230\n");
                 mark(childChunk, heap);
             }
         }
@@ -333,15 +329,10 @@ int main()
 {
     struct heap_t heap;
     hinit(8192, &heap);
-    //printf("295\n");
     void *p1 = halloc(100, &heap);
-    //printf("297\n");
     void *p2 = halloc(500, &heap);
-    //printf("299\n");
     void *p3 = halloc(10000, &heap);
-    //printf("301\n");
     void *p4 = halloc(2000, &heap);
-    //printf("303\n");
 
     p4 = NULL;
     void *roots[] = {p1, p2, p3};
