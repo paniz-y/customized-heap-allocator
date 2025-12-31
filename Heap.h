@@ -40,4 +40,6 @@ void unmarkAllChunks(struct heap_t *heap);
 void poolInitialize(struct heap_t *heap);
 uint8_t detectHeapSpraying(const size_t alignedSize);
 void testGarbageCollection(struct heap_t *heap);
+void testFragmentation(struct heap_t *heap);
+
 #endif

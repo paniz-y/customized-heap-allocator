@@ -145,6 +145,7 @@ struct chunk_t *firstFit(const size_t size, struct heap_t *heap, struct chunk_t 
 }
 struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
 {
+    printf("request memory from os \n");
     size_t alignedPageSize = alignPage(size + sizeof(struct chunk_t));
     struct chunk_t *newChunk = mmap(NULL, alignedPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (newChunk == MAP_FAILED)
@@ -340,12 +341,28 @@ void testGarbageCollection(struct heap_t *heap)
     hfree(p2, heap);
     hfree(p3, heap);
 }
+void testFragmentation(struct heap_t *heap)
+{
+    void *p1 = halloc(100, heap);
+    void *p2 = halloc(7500, heap);
+    void *p3 = halloc(200, heap);
+
+    printf("available space befor fragmentation: %u \n", heap->avail);
+    hfree(p2, heap);
+    void *p4 = halloc(700, heap);
+    printf("available space befor fragmentation: %u \n", heap->avail);
+    hfree(p1, heap);
+    hfree(p2, heap);
+    hfree(p3, heap);
+    hfree(p4, heap);
+}
 int main()
 {
     struct heap_t heap;
     hinit(8192, &heap);
     testGarbageCollection(&heap);
-
+    testFragmentation(&heap);
+    
 
     return 0;
 }
