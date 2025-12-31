@@ -98,7 +98,7 @@ void *halloc(const size_t size, struct heap_t *heap)
     }
     size_t alignedSize = align8(size);
 
-    if(detectHeapSpraying(alignedSize))
+    if (detectHeapSpraying(alignedSize))
     {
         return NULL;
     }
@@ -324,19 +324,28 @@ void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
     }
     sweep(heap);
 }
+void testGarbageCollection(struct heap_t *heap)
+{
+    void *p1 = halloc(100, heap);
+    void *p2 = halloc(500, heap);
+    void *p3 = halloc(100, heap);
+    void *p4 = halloc(2000, heap);
 
+    p4 = NULL;
+    printf("available space befor garbage collection: %u \n", heap->avail);
+    void *roots[] = {p1, p2, p3};
+    markAndSweep(heap, roots, 3);
+    printf("available space after garbage collection: %u \n", heap->avail);
+    hfree(p1, heap);
+    hfree(p2, heap);
+    hfree(p3, heap);
+}
 int main()
 {
     struct heap_t heap;
     hinit(8192, &heap);
-    void *p1 = halloc(100, &heap);
-    void *p2 = halloc(500, &heap);
-    void *p3 = halloc(10000, &heap);
-    void *p4 = halloc(2000, &heap);
+    testGarbageCollection(&heap);
 
-    p4 = NULL;
-    void *roots[] = {p1, p2, p3};
-    markAndSweep(&heap, roots, 3);
 
     return 0;
 }
