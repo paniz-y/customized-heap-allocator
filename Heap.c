@@ -1,8 +1,9 @@
 #include "Chunk.h"
 #include "Heap.h"
 #include "Pool.h"
-
-static size_t allocationCounts[1024] = {0};
+#define HEAP_SPRAY_THRESHOLD 1000
+#define LARGEST_ALLOCATION_BUCKET 1024
+static size_t allocationCounts[LARGEST_ALLOCATION_BUCKET] = {0};
 
 int hinit(size_t heapSize, struct heap_t *heap)
 {
@@ -73,11 +74,12 @@ void split(struct chunk_t *chunk, const size_t size)
 }
 uint8_t detectHeapSpraying(size_t alignedSize)
 {
-    size_t bucket = alignedSize % 1024;
+    size_t bucket = alignedSize % LARGEST_ALLOCATION_BUCKET;
     allocationCounts[bucket]++;
-    if (allocationCounts[bucket] > 1000)
+    if (allocationCounts[bucket] > HEAP_SPRAY_THRESHOLD)
     {
         errno = EPERM;
+        printf("heap spraying attack detected");
         return 1;
     }
     return 0;
@@ -324,6 +326,7 @@ void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
         }
     }
     sweep(heap);
+    coalescing(heap);
 }
 void testGarbageCollection(struct heap_t *heap)
 {
@@ -356,13 +359,20 @@ void testFragmentation(struct heap_t *heap)
     hfree(p3, heap);
     hfree(p4, heap);
 }
+void testHeapSprayingDetection(struct heap_t *heap)
+{
+    for(size_t i = 0; i < HEAP_SPRAY_THRESHOLD; i++)
+    {
+        void *ptr = halloc(200, heap);
+    }
+}
 int main()
 {
     struct heap_t heap;
     hinit(8192, &heap);
     testGarbageCollection(&heap);
     testFragmentation(&heap);
-    
+    testHeapSprayingDetection(&heap);
 
     return 0;
 }
