@@ -6,6 +6,6 @@ int main()
     testGarbageCollection(&heap);
     testFragmentation(&heap);
     testHeapSprayingDetection(&heap);
-
+    testMemoryPool(&heap);
     return 0;
 }

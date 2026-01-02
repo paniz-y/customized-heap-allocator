@@ -79,7 +79,7 @@ uint8_t detectHeapSpraying(size_t alignedSize)
     if (allocationCounts[bucket] > HEAP_SPRAY_THRESHOLD)
     {
         errno = EPERM;
-        printf("heap spraying attack detected");
+        printf("heap spraying attack detected \n");
         return 1;
     }
     return 0;
@@ -145,9 +145,9 @@ struct chunk_t *firstFit(const size_t size, struct heap_t *heap, struct chunk_t 
     }
     return NULL;
 }
-struct chunk_t *requestMemory(size_t size, struct heap_t *heap)
+struct chunk_t *requestMemory(const size_t size, struct heap_t *heap)
 {
-    printf("request memory from os \n");
+    //printf("request memory from os \n");
     size_t alignedPageSize = alignPage(size + sizeof(struct chunk_t));
     struct chunk_t *newChunk = mmap(NULL, alignedPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (newChunk == MAP_FAILED)
@@ -310,7 +310,7 @@ void poolInitialize(struct heap_t *heap)
     }
     heap->numPools = 5;
 }
-void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots)
+void markAndSweep(struct heap_t *heap, void **roots, const size_t numOfRoots)
 {
     unmarkAllChunks(heap);
 
@@ -353,7 +353,7 @@ void testFragmentation(struct heap_t *heap)
     printf("available space befor fragmentation: %u \n", heap->avail);
     hfree(p2, heap);
     void *p4 = halloc(700, heap);
-    printf("available space befor fragmentation: %u \n", heap->avail);
+    printf("available space after fragmentation: %u \n", heap->avail);
     hfree(p1, heap);
     hfree(p2, heap);
     hfree(p3, heap);
@@ -361,9 +361,19 @@ void testFragmentation(struct heap_t *heap)
 }
 void testHeapSprayingDetection(struct heap_t *heap)
 {
-    for(size_t i = 0; i < HEAP_SPRAY_THRESHOLD; i++)
+    for (size_t i = 0; i < HEAP_SPRAY_THRESHOLD; i++)
     {
         void *ptr = halloc(200, heap);
     }
 }
-
+void testMemoryPool(struct heap_t *heap)
+{
+    void *p1 = halloc(16, heap);
+    void *p2 = halloc(32, heap);
+    void *p3 = halloc(64, heap);
+    printf("available space after poolAlloc: %u \n", heap->avail);
+    hfree(p1, heap);
+    hfree(p2, heap);
+    hfree(p3, heap);
+    printf("available space after poolFree: %u \n", heap->avail);
+}

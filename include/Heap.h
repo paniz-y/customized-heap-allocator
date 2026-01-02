@@ -29,11 +29,11 @@ size_t alignPage(const size_t heapSize);
 size_t align8(size_t size);
 void *halloc(const size_t size, struct heap_t *heap);
 struct chunk_t *firstFit(const size_t size, struct heap_t *heap, struct chunk_t **prevChunk);
-struct chunk_t *requestMemory(size_t size, struct heap_t *heap);
+struct chunk_t *requestMemory(const size_t size, struct heap_t *heap);
 int existingPtrInHeap(void *ptr, struct heap_t *heap);
 void hfree(void *ptr, struct heap_t *heap);
 void coalescing(struct heap_t *heap);
-void markAndSweep(struct heap_t *heap, void **roots, size_t numOfRoots);
+void markAndSweep(struct heap_t *heap, void **roots,const size_t numOfRoots);
 void mark(struct chunk_t *chunk, struct heap_t *heap);
 void sweep(struct heap_t *heap);
 void unmarkAllChunks(struct heap_t *heap);
@@ -42,5 +42,5 @@ uint8_t detectHeapSpraying(const size_t alignedSize);
 void testGarbageCollection(struct heap_t *heap);
 void testFragmentation(struct heap_t *heap);
 void testHeapSprayingDetection(struct heap_t *heap);
-
+void testMemoryPool(struct heap_t *heap);
 #endif
