@@ -51,6 +51,7 @@ void *poolAlloc(size_t size, struct heap_t *heap)
     newReg->poolRegionEnd = (char *)poolPage + POOL_PAGE_SIZE;
     newReg->nextPoolRegion = heap->poolRegions;
     heap->poolRegions = newReg;
+    heap->avail -= POOL_PAGE_SIZE;
 
     size_t numberOfBlocks = POOL_PAGE_SIZE / newPool->blockSize;
 
@@ -85,6 +86,7 @@ int poolFree(void *ptr, struct heap_t *heap)
         {
             *(void **)ptr = pool->freeList;
             pool->freeList = ptr;
+            heap->avail += pool->blockSize;
             return 1;
         }
         pool = pool->next;
